@@ -629,40 +629,6 @@ def recon_stats(data, timestamp, cache_dir="/var/cache/swift"):
 REPLICATION_PROGRESS_STATS_FILE = "/opt/ss/var/lib/replication_progress.json"
 
 
-def _write_replication_progress(stats):
-    """
-    Atomic write of stats file.
-    """
-    tempfile = REPLICATION_PROGRESS_STATS_FILE + ".tmp"
-    with open(tempfile, "w") as f:
-        json.dump(stats, f)
-    os.rename(tempfile, REPLICATION_PROGRESS_STATS_FILE)
-
-
-def update_replication_progress(stats):
-    """
-    Replace all devices in the stats file with the stats entries for the
-    devices in the provided stats dict.
-    """
-    base_stats = read_replication_progress()
-    # top level key is device, the whole ring2stats map under all device keys
-    # present in the new stats will get replaced
-    base_stats.update(stats)
-    _write_replication_progress(base_stats)
-
-
-def clean_replication_progress(devices):
-    """
-    Any devices in the stats file which are not in the list of provided
-    devices will be removed form the stats files.
-    """
-    stats = read_replication_progress()
-    for dev in list(stats):
-        if dev not in devices:
-            del stats[dev]
-    _write_replication_progress(stats)
-
-
 def read_replication_progress():
     """
     Read the stats file from disk.
