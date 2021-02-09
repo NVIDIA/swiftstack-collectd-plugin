@@ -20,7 +20,6 @@ from datetime import datetime
 import errno
 import json
 import os
-from pystatsd import Server
 import re
 from six.moves.queue import Queue, Empty
 from six.moves import cPickle as pickle
@@ -219,6 +218,7 @@ def statsd_thread(
     statsd_forward_port,
     statsd_forward_prefix_hostname,
 ):
+    from pystatsd import Server
     if statsd_forward_host and statsd_forward_port:
         _log(
             "Forwarding StatsD stats to %s:%s", statsd_forward_host, statsd_forward_port
