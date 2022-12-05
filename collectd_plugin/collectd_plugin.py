@@ -228,9 +228,17 @@ def statsd_thread(
     if statsd_forward_prefix_hostname:
         statsd_forward_prefix = socket.gethostname()
         _log("Forwarding StatsD stats with hostname prefix %r", statsd_forward_prefix)
+
+    if data.get("monitor_endpoint") or (
+            data.get("carbon_host") and data.get("carbon_port")):
+        transport = "graphite_queue"
+    else:
+        # force our hacked-up pystatsd Server to use TransportNop
+        transport = "graphite"
+
     server = Server(
         pct_thresholds=pct_thresholds,
-        transport="graphite_queue",
+        transport=transport,
         queue=metrics_queue,
         flush_interval=flush_interval_seconds,
         counters_prefix=node_uuid,
