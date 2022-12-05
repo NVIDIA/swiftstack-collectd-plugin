@@ -152,15 +152,16 @@ def config(config_obj, data):
 
         data["threads"] = []
 
-        if data.get("ping_endpoint") and data.get("monitor_endpoint"):
-            pinger = threading.Thread(
-                name="collectd pinger",
-                target=zmq_pinger_thread,
-                args=(data["ping_endpoint"], data["node_uuid"]),
-            )
-            pinger.daemon = True  # must set before .start()
-            pinger.start()
-            data["threads"].append(pinger)
+        if data.get("monitor_endpoint"):
+            if data.get("ping_endpoint"):
+                pinger = threading.Thread(
+                    name="collectd pinger",
+                    target=zmq_pinger_thread,
+                    args=(data["ping_endpoint"], data["node_uuid"]),
+                )
+                pinger.daemon = True  # must set before .start()
+                pinger.start()
+                data["threads"].append(pinger)
 
             writer = threading.Thread(
                 target=zmq_writer_thread,
@@ -947,5 +948,7 @@ if running_inside_collectd:
     data = {}
     collectd.register_init(init)
     collectd.register_config(config, data)
-    collectd.register_write(write, data)
+    if data.get("monitor_endpoint") or (
+            data.get("carbon_host") and data.get("carbon_port")):
+        collectd.register_write(write, data)
     collectd.register_read(read, data=data)
