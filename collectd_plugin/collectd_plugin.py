@@ -959,4 +959,4 @@ if running_inside_collectd:
     if data.get("monitor_endpoint") or (
             data.get("carbon_host") and data.get("carbon_port")):
         collectd.register_write(write, data)
-    collectd.register_read(read, data=data)
+        collectd.register_read(read, data=data)
