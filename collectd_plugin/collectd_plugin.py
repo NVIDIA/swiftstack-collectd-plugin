@@ -151,15 +151,16 @@ def config(config_obj, data):
 
         data["threads"] = []
 
-        if data.get("ping_endpoint") and data.get("monitor_endpoint"):
-            pinger = threading.Thread(
-                name="collectd pinger",
-                target=zmq_pinger_thread,
-                args=(data["ping_endpoint"], data["node_uuid"]),
-            )
-            pinger.daemon = True  # must set before .start()
-            pinger.start()
-            data["threads"].append(pinger)
+        if data.get("monitor_endpoint"):
+            if data.get("ping_endpoint"):
+                pinger = threading.Thread(
+                    name="collectd pinger",
+                    target=zmq_pinger_thread,
+                    args=(data["ping_endpoint"], data["node_uuid"]),
+                )
+                pinger.daemon = True  # must set before .start()
+                pinger.start()
+                data["threads"].append(pinger)
 
             writer = threading.Thread(
                 target=zmq_writer_thread,
@@ -227,9 +228,17 @@ def statsd_thread(
     if statsd_forward_prefix_hostname:
         statsd_forward_prefix = socket.gethostname()
         _log("Forwarding StatsD stats with hostname prefix %r", statsd_forward_prefix)
+
+    if data.get("monitor_endpoint") or (
+            data.get("carbon_host") and data.get("carbon_port")):
+        transport = "graphite_queue"
+    else:
+        # force our hacked-up pystatsd Server to use TransportNop
+        transport = "graphite"
+
     server = Server(
         pct_thresholds=pct_thresholds,
-        transport="graphite_queue",
+        transport=transport,
         queue=metrics_queue,
         flush_interval=flush_interval_seconds,
         counters_prefix=node_uuid,
@@ -947,5 +956,7 @@ if running_inside_collectd:
     data = {}
     collectd.register_init(init)
     collectd.register_config(config, data)
-    collectd.register_write(write, data)
-    collectd.register_read(read, data=data)
+    if data.get("monitor_endpoint") or (
+            data.get("carbon_host") and data.get("carbon_port")):
+        collectd.register_write(write, data)
+        collectd.register_read(read, data=data)
