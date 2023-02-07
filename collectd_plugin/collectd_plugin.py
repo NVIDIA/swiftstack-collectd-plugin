@@ -360,6 +360,9 @@ def carbon_writer_thread(metrics_queue, carbon_host, carbon_port):
 
 def write(values, data):
     """Pass collected data to the writer thread.  Also catch thread death."""
+    if not data.get("monitor_endpoint"):
+         return
+
     if not all(t.isAlive() for t in data["threads"]):
         # In general, suicide is not the answer.  Here, we make an exception.
         os._exit(4)
@@ -396,6 +399,9 @@ def read(data):
     so the fact that they wait around a while does not affect their
     correctness.
     """
+
+    if not data.get("monitor_endpoint"):
+         return
 
     t = int(time())
     metrics = []
@@ -956,7 +962,5 @@ if running_inside_collectd:
     data = {}
     collectd.register_init(init)
     collectd.register_config(config, data)
-    if data.get("monitor_endpoint") or (
-            data.get("carbon_host") and data.get("carbon_port")):
-        collectd.register_write(write, data)
-        collectd.register_read(read, data=data)
+    collectd.register_write(write, data)
+    collectd.register_read(read, data=data)
